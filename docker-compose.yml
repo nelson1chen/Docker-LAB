@@ -1,0 +1,73 @@
+services:
+  # 1. Nginx 反向代理 (入口)
+  proxy:
+    image: nginx:alpine
+    container_name: lab_proxy
+    restart: unless-stopped # 新增重啟策略
+    ports:
+      - "80:80" # 將主機的 80 port 映射到容器的 80 port
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro # 掛載 nginx 設定檔 (唯讀)
+    networks:
+      - lab-net
+    depends_on: # 簡化依賴，只等待容器啟動
+      - web
+      - webapi
+
+  # 2. Web 前端服務 (使用 nginx 託管靜態頁面)
+  web:
+    image: nginx:alpine
+    container_name: lab_web
+    volumes:
+      - ./web:/usr/share/nginx/html:ro # 掛載靜態網站內容 (唯讀)
+    networks:
+      - lab-net
+    # 此服務不對外暴露 port，由 proxy 轉發
+
+  # 3. WebAPI 後端服務 (使用一個 echo 伺服器作為範例)
+  webapi:
+    image: mendhak/http-https-echo # 恢復使用原始的 echo 映像檔
+    container_name: lab_webapi
+    networks:
+      - lab-net
+    # 此服務不對外暴露 port，由 proxy 轉發
+
+  # 4. PostgreSQL 資料庫
+  db:
+    image: postgres:14-alpine
+    container_name: lab_db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432" # 方便從主機直接連線資料庫
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # 資料持久化
+    networks:
+      - lab-net
+
+  # 5. RabbitMQ 訊息佇列
+  rabbitmq:
+    image: rabbitmq:3-management-alpine # 使用帶有管理介面的 image
+    container_name: lab_rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"   # AMQP client port
+      - "15672:15672" # 管理介面 UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq # 資料持久化
+    networks:
+      - lab-net
+
+networks:
+  lab-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
