@@ -43,7 +43,7 @@
     end
 
     subgraph "Docker 環境 (Network: lab-net)"
-        Browser -- "HTTP Request<br>http://localhost" --> Proxy("🚀 Nginx 反向代理<br>Service: proxy")
+    Browser -- "HTTP Request: http://localhost" --> Proxy("🚀 Nginx 反向代理<br>Service: proxy")
 
         Proxy -- "路由: /" --> Web("📄 前端靜態伺服器<br>Service: web")
         Proxy -- "路由: /api/*" --> WebAPI("⚙️ 後端 API 伺服器<br>Service: webapi")
